@@ -16,3 +16,5 @@ include(GoogleTest)
 add_executable(solver-test solver-test.cpp)
 target_link_libraries(solver-test gtest_main)
 gtest_discover_tests(solver-test)
+
+add_executable(solver solver.cpp)

@@ -1,6 +1,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <fstream>
 #include <limits>
 #include <span>
 #include <string_view>
@@ -11,6 +12,8 @@ using UInt = uint8_t;
 //------------------------------------------------------------------------
 // Edges
 //------------------------------------------------------------------------
+namespace edge {
+
 class Edge {
 
     static constexpr UInt red    = 0;
@@ -24,7 +27,9 @@ class Edge {
     Edge(UInt value) : value_(value) {}
 
   public:
+    constexpr Edge() : value_(red) {}
     constexpr Edge(const std::string_view digraph) {
+        assert(digraph.length() == 2);
         switch (digraph[0]) {
             case 'R': value_ = red;    break;
             case 'B': value_ = blue;   break;
@@ -41,52 +46,50 @@ class Edge {
 
     bool operator==(const Edge&) const = default;
     Edge get_match() const { return { static_cast<UInt>(value_ ^ head) }; }
-    bool is_match(Edge e) const { return *this == e.get_match(); }
+    bool is_match(const Edge e) const { return *this == e.get_match(); }
 
     constexpr operator UInt() const { return value_; }
 
 };
 
-namespace Edges {
-    constexpr Edge RT{"RT"}, RedTail = RT;
-    constexpr Edge BT{"BT"}, BlueTail = BT;
-    constexpr Edge GT{"GT"}, GreenTail = GT;
-    constexpr Edge YT{"YT"}, YellowTail = YT;
-    constexpr Edge RH{"RH"}, RedHead = RH;
-    constexpr Edge BH{"BH"}, BlueHead = BH;
-    constexpr Edge GH{"GH"}, GreenHead = GH;
-    constexpr Edge YH{"YH"}, YellowHead = YT;
-    constexpr std::array edges = {RT, BT, GT, YT, RH, BH, GH, YH};
+constexpr Edge RT{"RT"}, red_tail = RT;
+constexpr Edge BT{"BT"}, blue_tail = BT;
+constexpr Edge GT{"GT"}, green_tail = GT;
+constexpr Edge YT{"YT"}, yellow_tail = YT;
+constexpr Edge RH{"RH"}, red_head = RH;
+constexpr Edge BH{"BH"}, blue_head = BH;
+constexpr Edge GH{"GH"}, green_head = GH;
+constexpr Edge YH{"YH"}, yellow_head = YH;
+constexpr std::array edges = {RT, BT, GT, YT, RH, BH, GH, YH};
+
 }
+
+using edge::Edge;
 
 
 //------------------------------------------------------------------------
 // Tiles
 //------------------------------------------------------------------------
-using EdgeSpan = std::span<const Edge,4>;
+namespace tile {
 
-class TileEdgeView : public EdgeSpan {
-  public:
-    TileEdgeView(const Edge& first) : EdgeSpan(&first, EdgeSpan::extent) {};
-    Edge top()    const { return (*this)[0]; }
-    Edge right()  const { return (*this)[1]; }
-    Edge bottom() const { return (*this)[2]; }
-    Edge left()   const { return (*this)[3]; }
-};
+constexpr UInt edges_per_tile = 4;
+
+using TileEdgeSpan = std::span<const Edge, edges_per_tile>;
+auto edge_span(const Edge* first) { return TileEdgeSpan(first, edges_per_tile); }
+auto wrap(const UInt n) { return n % edges_per_tile; }
 
 class Tile {
-    std::array<Edge, 2*EdgeSpan::extent> edges_ = {
-        Edges::RT, Edges::RT, Edges::RT, Edges::RT,
-        Edges::RT, Edges::RT, Edges::RT, Edges::RT
-    };
+    std::array<Edge, 2*edges_per_tile> edges_;
   public:
-    Tile(const TileEdgeView ev) {
+    Tile() = default;
+    Tile(const TileEdgeSpan es) {
         UInt n = 0;
-        for (auto edge : ev) edges_[n++] = edge;
-        for (auto edge : ev) edges_[n++] = edge;
+        for (auto edge : es) edges_[n++] = edge;
+        for (auto edge : es) edges_[n++] = edge;
     }
-    Tile(const std::initializer_list<Edge> il) : Tile(TileEdgeView(*il.begin())) {}
-    TileEdgeView edges() const { return {edges_[0]}; }
+    Tile(const std::initializer_list<Edge> il) : Tile(edge_span(std::data(il))) {}
+    Edge edge(const UInt n) const { return edges_[n]; }
+    auto edges() const { return edge_span(std::data(edges_)); }
     bool operator==(const Tile&) const = default;
     friend class TileView;
 };
@@ -95,15 +98,51 @@ class TileView {
     const Tile& tile_;
     UInt rotation_;
   public:
-    TileView(const Tile& tile, UInt rotation=0) : tile_(tile), rotation_(rotation % EdgeSpan::extent) {}
-    auto edges() const { return TileEdgeView(tile_.edges_[rotation_]); }
+    TileView(const Tile& tile) : tile_(tile), rotation_(0) {}
+    TileView(const Tile& tile, UInt rotation) : tile_(tile), rotation_(wrap(rotation)) {}
+    TileView(const TileView& tv, UInt rotation) : tile_(tv.tile_), rotation_(wrap(tv.rotation_ + rotation)) {}
+    Edge edge(const UInt n) const { return tile_.edges_[rotation_ + n]; }
+    auto edges() const { return edge_span(&tile_.edges_[rotation_]); }
     bool operator==(const TileView&) const = default;
     bool is_same_tile(const TileView& tv) const { return &tile_ == &tv.tile_; }
-    TileView rotate(UInt rotations=1) const { return {tile_, static_cast<UInt>(rotation_ + rotations)}; }
 };
 
-TileView rotate(const Tile& tile, UInt rotations=1) { return {tile, rotations}; }
-TileView rotate(TileView tv, UInt rotations=1) { return tv.rotate(rotations); }
+}
+
+using tile::Tile;
+using tile::TileView;
+
+auto top   (const TileView& tv) { return tv.edge(0); }
+auto right (const TileView& tv) { return tv.edge(1); }
+auto bottom(const TileView& tv) { return tv.edge(2); }
+auto left  (const TileView& tv) { return tv.edge(3); }
+TileView rotate(const TileView& tv, UInt rotations=1) { return TileView(tv, rotations); }
+
+
+//------------------------------------------------------------------------
+// Utilities
+//------------------------------------------------------------------------
+std::array<Tile,9> load_tiles(const std::string& input_file) {
+    std::array<Tile, 9> tiles;
+    std::array<Edge, tile::edges_per_tile> edges;
+    std::string line, digraph;
+    std::ifstream inp;
+    inp.exceptions(std::ios::failbit | std::ios::badbit);
+    inp.open(input_file);
+    for(int n = 0; n < tiles.size(); ) {
+        if (inp.peek() == '#') {
+            std::getline(inp, line);
+            continue;
+        }
+        for (auto& edge : edges) {
+            inp >> digraph;
+            edge = Edge(digraph);
+        }
+        tiles[n++] = Tile(edges);
+    }
+    return tiles;
+}
+
 
 /*
 class Deck {
