@@ -1,0 +1,17 @@
+# Problem Statement:
+#  - Each row represents a tile
+#  - Each digraph in a row represents an edge of the tile
+#  - Edges are listed clockwise from the top (top, right, bottom, left)
+#  - First letter in the digraph is edge color (Red, Green, Blue, Yellow)
+#  - Second letter in the digraph is edge "direction" (Head, Tail)
+#  - Edges "match" when a Tail abuts a Head of the same color.
+#  - The solution is a 3-by-3 tile arangement with all edges matched.
+BH RH RH YT
+YH RH GT GH
+RT BT RH YH
+BT RT YT BH
+YH GT BT GH
+RT BT GH RT
+GH YH YT BH
+GT BH GT YT
+RH GH BH YT
