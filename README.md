@@ -1,6 +1,6 @@
 # puzz
 
-My mother-in-law recently gifted my son two obnoxious puzzles from [Lagoon Games](www.lagoongames.com):
+My mother-in-law recently gifted my son two very obnoxious puzzles from [Lagoon Games](www.lagoongames.com):
 
 | Fabulous Frogs | Leapin' Lizards |
 |----------------|-----------------|
