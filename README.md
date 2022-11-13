@@ -14,11 +14,11 @@ So, I did what any good geek would do an wrote program to solve it. I chose to w
 
 * The output of the solver routine is two 3x3 arrays: one specifying the position of each input tile in final arrangement, and another specifying the number of quarter-turns in clockwise direction needed to orient each tile.
 
-* The solution process consists of two main steps. First, an outer loop generates a sequence of tile layouts using `std::next_permutation`. Then, a series of nine inner loops perfom a brute force search of possible tile orientations for a given layout, exiting when either a solution is found or the layout is found to be inconsistent.
+* The solution process consists of two main steps. First, an outer loop generates a sequence of possible tile layouts using `std::next_permutation`. Then, a series of nine inner loops perfom a brute force search of possible tile orientations for a given layout, exiting when either a solution is found or the layout is determined to be inconsistent.
 
 * During the orientation search, tiles in the layout are "rotated" in place by applying `std::rotate` to a tile's edge list. The rotation count array keeps track of how many times a tile has been rotated and also serves as the loop control variable. This minimizes working memory used during these hot loops (9 32-bit `Tile` objects and 9 `uint8_t` counters). It also ensures we can use the same edge checking function at each level of the search, which results in a very clear and elegant implementation. 
 
-* The edge check function itself simply verifies that a tile's left and top edges match its neighbors. This function is templated on the (i,j) location of the tile being tested so that appropriate checks can be deleted via `if constexpr` if the tile doesn't have, e.g. a top neighbor. The approprite `check<i,j>` function is called after each tile permutation, and the puzzle is solved when `check<i,j>(t)` returns true for all 9 tile positions.
+* The edge check function itself simply verifies that a tile's left and top edges match its neighbors. This function is templated on the (i,j) location of the tile being tested so that appropriate checks can be deleted via `if constexpr` if the tile doesn't have, e.g. a top neighbor. The approprite `check<i,j>` function is called after each tile rotation, and the puzzle is solved when `check<i,j>(t)` returns true for all 9 tile positions.
 
 ### Usage
 
