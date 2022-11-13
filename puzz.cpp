@@ -103,7 +103,7 @@ bool orient(TileArray& t, TileRotations& r) {
 }
 
 std::optional<SolveResult> solve(const TileList& tiles) {
-    TileArray arranged;
+    TileArray layout;
     SolveResult res {
         TilePositions({0, 1, 2, 3, 4, 5, 6, 7, 8}),
         TileRotations({0, 0, 0, 0, 0, 0, 0, 0, 0}),
@@ -113,9 +113,9 @@ std::optional<SolveResult> solve(const TileList& tiles) {
     do {
         for (size_t i = 0; i < num_rows; ++i) {
         for (size_t j = 0; j < num_cols; ++j) {
-            arranged(i,j) = tiles[res.positions(i,j)];
+            layout(i,j) = tiles[res.positions(i,j)];
         }}
-        if (orient(arranged, res.rotations)) return res;
+        if (orient(layout, res.rotations)) return res;
     } while(rng::next_permutation(p).found);
 
     return std::nullopt;
