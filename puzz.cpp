@@ -49,7 +49,7 @@ Edge top   (Tile t)  { return t[0]; }
 Edge right (Tile t)  { return t[1]; }
 Edge bottom(Tile t)  { return t[2]; }
 Edge left  (Tile t)  { return t[3]; }
-void rotate(Tile& t) { rng::rotate(t, &t[1]); };  // Rotates tile CCW
+void rotate(Tile& t) { rng::rotate(t, &t[1]); }  // Rotates tile CCW
 
 
 //---------------------------------------------------------------------
